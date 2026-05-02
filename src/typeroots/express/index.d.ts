@@ -1,5 +1,4 @@
 import { TUser } from "../../types";
-import { Productinterface } from "../../types/product.types";
 
 
 
@@ -11,7 +10,6 @@ declare global {
         interface Request {
             user?: TUser;
             cloudinaryUrls?: string[];
-            product?: Productinterface;
         }
     }
 }

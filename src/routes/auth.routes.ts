@@ -1,22 +1,20 @@
 import { Router } from 'express';
-import * as controller from '../controllers/auth.controller';
+import {
+    sendOtp,
+    verifyOtp,
+    resendOtp,
+    getOtpCooldown,
+    refreshSession,
+    logout,
+} from "../controllers/auth.controller";
 
 export const auth = Router();
 // const userMiddleware = new UserMiddleware();
 
 
-auth.post('/sign-up', controller.signup())
-auth.post('/login', controller.loginController())
-auth.post('/google', controller.googleLoginController())
-auth.post('/logout', controller.logoutController())
-auth.post('/refresh', controller.refreshToken())
-auth.post('/forgotten-password', controller.forgottenPasswordController())
-auth.post('/password-reset', controller.passwordResetController());
-
-
-
-
-// auth.post(
-//     '/password-reset', upload.single('profilePicture'),
-//     controller.completeRegistrationController()
-// );
+auth.post("/send-otp", sendOtp);
+auth.post("/verify-otp", verifyOtp);
+auth.post("/resend-otp", resendOtp);
+auth.get("/otp-cooldown", getOtpCooldown);  // GET with ?phone= query
+auth.post("/refresh", refreshSession);
+auth.post("/logout", logout);

@@ -1,135 +1,95 @@
-import mongoose, { Date, Schema, Types, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
-
-export enum UserRoles {
+export enum UserRole {
     ADMIN = 'admin',
-    CUSTOMER = 'customer'
+    USER = 'user',
 }
-const roleOrder = Object.values(UserRoles)
 
-
-export interface IUserAddress {
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
+export interface IEmergencyContact {
+    _id?: string;
+    name: string;
+    phone: string;
+    email?: string;
+    relationship: string;
 }
 
 export interface IUser {
-    name: string;
-    email: string;
     phone: string;
-    password: string;
-    profilePicture: string;
-    shippingAddress: IUserAddress;
-    role: UserRoles;
-    isVerified: boolean
-    cart: Types.ObjectId;
-    wishlist: Types.ObjectId;
-    orders: Types.ObjectId;
-    reviews: Types.ObjectId;
+    name?: string;
+    email?: string;              // optional
+    isEmailVerified: boolean;    // tracks email verification
+    profilePicture?: string;
+    role: UserRole;
+    isOnboarded: boolean;
+    isActive: boolean;
+    emergencyContacts: IEmergencyContact[];
+    lastSeenAt?: Date;
+    pushTokens: string[];
 }
 
-const UserAddress = new Schema<IUserAddress>({
-    address: { type: String },
-    city: { type: String },
-    state: { type: String },
-    zipCode: { type: String },
-    country: { type: String },
-});
+const EmergencyContactSchema = new Schema<IEmergencyContact>({
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String },
+    relationship: { type: String, required: true },
+}, { _id: true }); // enable _id for subdocuments
 
 const UserSchema = new Schema<IUser>({
-    name: {
+    phone: {
         type: String,
         required: true,
+        unique: true,
+        index: true,
     },
-    phone: {
+    name: {
         type: String,
     },
     email: {
         type: String,
-        required: true,
         unique: true,
+        sparse: true,   // ← allows multiple docs with no email (null/undefined)
     },
-    password: {
-        type: String,
-        required: true,
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
     },
     profilePicture: {
-        type: String
+        type: String,
     },
-    shippingAddress: UserAddress,
     role: {
         type: String,
-        enum: Object.values(UserRoles),
-        default: UserRoles.CUSTOMER
+        enum: Object.values(UserRole),
+        default: UserRole.USER,
     },
-    isVerified: {
+    isOnboarded: {
         type: Boolean,
-        default: false
+        default: false,
     },
-    wishlist: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Wishlist',
-    }],
-    cart: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Cart',
-    }],
-    orders: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Order',
-    }],
-    reviews: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Review',
-    }],
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
+    emergencyContacts: {
+        type: [EmergencyContactSchema],
+        default: [],
+    },
+    lastSeenAt: {
+        type: Date,
+    },
+    pushTokens: {
+        type: [String],
+        default: [],
+    },
 }, {
     timestamps: true,
 });
 
 export const User = model<IUser>('User', UserSchema);
 
-
-
-
-export const canCreateRole = (creatorRole: UserRoles, targetRole: UserRoles): boolean => {
-    const roleHierarchy: Record<UserRoles, UserRoles[]> = roleOrder.reduce((hierarchy, role, index) => {
-        if (index < roleOrder.length - 2) {
-            hierarchy[role] = roleOrder.slice(index + 1) as UserRoles[];
-        } else {
-            hierarchy[role] = [];
-        }
-        return hierarchy;
-    }, {} as Record<UserRoles, UserRoles[]>);
-    return roleHierarchy[creatorRole]?.includes(targetRole) || false;
-};
-
-export const canUserCreateRole = async (userId: string, targetRole: UserRoles): Promise<boolean> => {
-    const creator = await User.findById(userId);
-    return creator ? canCreateRole(creator.role, targetRole) : false;
-};
-
-
-
-
-
-
-
-
-
-
-
-//methods
-export const getUsers = () => User.find();
-export const getUserByEmail = (email: String) => User.findOne({ email });
-export const getUserByName = (name: String) => User.findOne({ name });
-export const getUserByRole = (role: String) => User.findOne({ role })
-export const getUserByPhone = (phone: string) => User.findOne({ phone })
-export const getUserById = (id: String) => User.findById(id).lean();
-export const createUser = (values: Record<string, any>) => new User(values).save().then((user) => user.toObject());
-export const deleteUserById = (id: string) => User.findByIdAndDelete({ _id: id });
-export const updateUserById = (id: string, values: Record<string, any>) => User.findByIdAndUpdate(id, values)
-
-export const updateUserByEmail = (userEmail: string, values: Record<string, any>) => User.findOneAndUpdate({ email: userEmail }, values, { new: true });
+// ── helpers ───────────────────────────────────────────────────────────────────
+export const getUserByPhone = (phone: string) => User.findOne({ phone });
+export const getUserByEmail = (email: string) => User.findOne({ email });
+export const getUserById = (id: string) => User.findById(id).lean();
+export const createUser = (phone: string) => new User({ phone }).save();
+export const updateUserById = (id: string, values: Partial<IUser>) =>
+    User.findByIdAndUpdate(id, values, { new: true });

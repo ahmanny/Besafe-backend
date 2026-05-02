@@ -25,7 +25,7 @@ class JwtServiceClass {
     }
 
     sign(payload: any, token_type: 'access' | 'refresh') {
-        return jwt.sign({ id: payload._id }, this.getSecretKey(token_type), this.getJwtOptions(token_type));
+        return jwt.sign(payload, this.getSecretKey(token_type), this.getJwtOptions(token_type));
     }
 
     verify(token: string, token_type: 'access' | 'refresh') {
@@ -39,7 +39,7 @@ class JwtServiceClass {
     decode(token: string) {
         return jwt.decode(token, { complete: true });
     }
-    
+
 }
 
 export const JwtService = new JwtServiceClass();

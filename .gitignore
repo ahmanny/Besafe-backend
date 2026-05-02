@@ -167,3 +167,6 @@ build
 
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,dotenv
 .vercel
+
+# Firebase
+besafe-2186b-firebase-adminsdk-fbsvc-965708cd2b.json

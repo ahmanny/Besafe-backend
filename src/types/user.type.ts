@@ -1,15 +1,20 @@
 import { JwtPayload } from 'jsonwebtoken';
 
+
 export type TUser = {
-    name: string;
-    email: string;
-    phone: string
-    role: string;
     _id: string;
+    phone: string;
+    name?: string;
+    email?: string;
+    profilePicture?: string;
+    role: string;
+    isOnboarded: boolean;
+    isActive: boolean;
+    emergencyContacts: any[];
+    lastSeenAt?: Date;
     createdAt?: string;
     updatedAt?: string;
     __v?: number;
-
 };
 
 export type TPayload = string | JwtPayload | null | undefined;

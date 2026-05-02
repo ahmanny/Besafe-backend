@@ -1,39 +1,147 @@
-# Ecommerce-backend
-# Node Express Mongo TypeScript 
+# BeSafe Backend
 
-## Features and Included Libraries
+The BeSafe backend is a TypeScript/Express API for the BeSafe personal safety
+mobile app. It handles phone-based authentication, user profiles, emergency
+contacts, AI-assisted threat analysis, safety check-ins, and push notifications.
 
+## Tech Stack
 
-- **ExpressJS**: The foundation of the application, Express is a fast and minimalist web framework for Node.js, making it easy to build robust and scalable APIs.
+- Node.js
+- Express
+- TypeScript
+- MongoDB with Mongoose
+- JWT access and refresh tokens
+- Expo push notifications
+- Mailjet email delivery
+- Cloudinary uploads
+- node-cron scheduled safety checks
 
-- **Mongoose**: Mongoose is used as the MongoDB client, providing an elegant way to interact with MongoDB databases and define data schemas.
+## Main Features
 
-- **axios**: Axios is included for making HTTP requests, simplifying the process of fetching data from external sources or APIs.
+- Phone number authentication with OTP verification.
+- Refresh-token based session management.
+- User onboarding with profile details and emergency contacts.
+- Emergency contact storage on the user profile.
+- Text threat analysis through an external AI prediction service.
+- Safety check-in sessions with confirm, extend, cancel, stop, and location update flows.
+- Scheduled safety check monitoring that reminds users and triggers alerts when a check-in is overdue.
+- Expo push token registration and notification dispatch.
+- Admin, user, auth, safety, and notification route groups.
 
-- **bcrypt**: This library is used for encrypting and decrypting sensitive data, such as passwords and tokens, enhancing the security of your application.
+## Project Structure
 
-- **cors**: The `cors` npm package is included to handle Cross-Origin Resource Sharing, allowing your API to be accessed by clients from different domains.
+```text
+src/
+  configs/          Environment, JWT, Cloudinary, Mailjet, and server config
+  controllers/      Express request handlers
+  exceptions/       App-specific HTTP error classes
+  jobs/             Scheduled background jobs
+  middlewares/      Auth, upload, and request middleware
+  models/           Mongoose models
+  routes/           API route definitions
+  services/         Business logic
+  templates/        Email templates
+  types/            Shared TypeScript types
+  utils/            Response, token, email, OTP, and helper utilities
+```
 
-- **helmet**: Helmet helps secure your Express apps by setting various HTTP headers to protect against common web vulnerabilities.
+## API Overview
 
-- **morgan**: Morgan is used for logging HTTP requests, making it easier to debug and monitor your application.
+All routes are mounted under `/v1`.
 
-- **http-errors**: The `http-errors` package simplifies the creation of HTTP error responses, improving error handling in your application.
+Public auth routes:
 
-- **nodemon**: Nodemon is a utility that monitors for changes in your code and automatically restarts the server during development, saving you time and effort.
+- `POST /v1/auth/send-otp`
+- `POST /v1/auth/verify-otp`
+- `POST /v1/auth/resend-otp`
+- `GET /v1/auth/otp-cooldown?phone=...`
+- `POST /v1/auth/refresh`
+- `POST /v1/auth/logout`
 
-- **ts-node**: TypeScript Node.js is used to execute TypeScript files directly, making it easy to write and run TypeScript code without transpiling.
+Authenticated safety routes:
 
-- **TypeScript**: TypeScript is a strongly typed superset of JavaScript that enhances code quality and provides better tooling for modern JavaScript development.
+- `POST /v1/safety/analyze`
+- `POST /v1/safety/check-in/start`
+- `POST /v1/safety/check-in/confirm`
+- `POST /v1/safety/check-in/cancel`
+- `GET /v1/safety/check-in/active`
+- `POST /v1/safety/check-in/extend`
+- `PATCH /v1/safety/check-in/location`
+- `POST /v1/safety/check-in/stop`
 
-- **ESLint**: ESLint is included to enforce code style and maintainability rules, ensuring your code follows best practices and stays consistent.
+Authenticated route groups also include:
 
-These libraries and features are carefully selected to provide you with a solid foundation for building secure, maintainable, and scalable Node.js applications with TypeScript. You can further customize and extend this starter kit to meet your specific project requirements.
+- `/v1/user`
+- `/v1/admin`
+- `/v1/notifications`
 
-## Requirements
+## Environment Variables
 
-Make sure you have the following software installed on your system:
+Create a `.env` file in the backend directory. Values depend on your local or
+deployment setup.
 
-- [Node.js](https://nodejs.org/) - JavaScript runtime environment
-- [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/) - Package managers for Node.js
-- [MongoDB CLI](https://docs.mongodb.com/manual/installation/) (optional) - If you want to connect to a MongoDB database on your local system.
+```env
+PORT=8000
+HOST=localhost
+DB_URL=mongodb://localhost:27017/besafe
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+AI_BASE_URL=https://besafev1.onrender.com
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+MAILJET_API_KEY=your_mailjet_key
+MAILJET_SECRET_KEY=your_mailjet_secret
+```
+
+The code defaults `AI_BASE_URL` to `https://besafev1.onrender.com` when it is
+not provided.
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+Build the TypeScript project:
+
+```bash
+npm run build
+```
+
+Run the built server:
+
+```bash
+npm start
+```
+
+## Safety Check Flow
+
+1. The mobile app starts a check-in with an activity, interval, selected contacts, and optional start location.
+2. The backend stores the active check and calculates the next check-in time.
+3. A cron job runs every minute, sending tick updates and due reminders.
+4. If the user confirms, the next check-in time is reset.
+5. If the check becomes overdue beyond the grace period, the backend marks it as triggered and notifies emergency contacts.
+
+## Threat Analysis Flow
+
+1. The mobile app records/transcribes speech.
+2. It sends text to `POST /v1/safety/analyze`.
+3. The backend forwards the text to the configured AI model endpoint.
+4. If the model returns `threat` with confidence at or above the threshold, the response tells the app to trigger the SOS flow.
+
+## Notes
+
+- This README describes the actual BeSafe backend. The previous ecommerce starter README was outdated.
+- The API expects authenticated routes to receive a valid Bearer access token.
+- Push notifications require valid Expo push tokens saved for users.

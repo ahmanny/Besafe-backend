@@ -1,8 +1,6 @@
+// middlewares/user.middleware.ts
 import type { Request, Response, NextFunction } from 'express';
 import { getTokenInfo } from '../utils';
-import type { TUser } from '../types';
-import { canUserCreateRole, UserRoles } from '../models/user.model';
-import Exception from '../exceptions/Exception';
 import { error_handler } from '../utils/response_handler';
 import AuthenticationTokenException from '../exceptions/AuthenticationTokenException';
 import UnauthorizedAccessException from '../exceptions/UnauthorizedAccessException';
@@ -15,108 +13,56 @@ export class UserMiddleware {
         try {
             const token = await getTokenInfo({ req });
             if (token?.is_valid_token && token.user) {
-                req.user = token.user
+                req.user = token.user;
             }
-
             if (!token?.is_valid_token) {
-                throw new AuthenticationTokenException("Invalid or Expired authentication token")
+                throw new AuthenticationTokenException("Invalid or Expired authentication token");
             }
-            next(); // Proceed to next
+            next();
         } catch (error) {
-            error_handler(error, req, res)
+            error_handler(error, req, res);
         }
     }
 
-
-
-    checkRolePermission() {
-        return async (req: Request, res: Response, next: NextFunction) => {
-            const targetRole = req.body.role as UserRoles
-            const userId = (req.user as TUser)._id;
-            try {
-                if (!targetRole) {
-                    throw new Exception("No role found")
-                }
-                const isAllowed = await canUserCreateRole(userId, targetRole);
-                if (!isAllowed) {
-                    throw new Exception('You do not have permission to create this role.')
-                }
-                next(); // Proceed to next
-            } catch (error) {
-                error_handler(error, req, res)
+    // ── onboarding guard 
+    async requireOnboarded(req: Request, res: Response, next: NextFunction) {
+        try {
+            if (!req.user) {
+                throw new UnauthorizedAccessException("Not authenticated");
             }
-        };
-    };
-
-
-
+            if (!req.user.isOnboarded) {
+                throw new ForbiddenAccessException("Please complete onboarding first");
+            }
+            next();
+        } catch (error) {
+            error_handler(error, req, res);
+        }
+    }
 
     hasAnyRole(roles: string[]) {
         return async (req: Request, res: Response, next: NextFunction) => {
             const user = req?.user;
             try {
-                if (!user) {
-                    throw new UnauthorizedAccessException('Unauthorized user')
-                }
-
-                const user_role = user.role;
-
-                const has_role = roles.includes(user_role);
-
+                if (!user) throw new UnauthorizedAccessException('Unauthorized user');
+                const has_role = roles.includes(user.role);
                 if (has_role) {
                     return next();
                 } else {
-                    throw new ForbiddenAccessException('Not authorized to access this resource')
+                    throw new ForbiddenAccessException('Not authorized to access this resource');
                 }
             } catch (error) {
-                error_handler(error, req, res)
+                error_handler(error, req, res);
             }
-
         };
     }
-
-
 
     hasRole(role: string) {
         return async (req: Request, res: Response, next: NextFunction) => {
             const user = req?.user;
-            const has_role = Array.isArray(user?.role) ? user.role.includes(role) : user?.role === role;
-
+            const has_role = Array.isArray(user?.role)
+                ? user.role.includes(role)
+                : user?.role === role;
             return has_role ? next() : res.status(403).send({ error: 'Access Denied' });
         };
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// hasAllRole(roles: Array<string>) {
-//     return async (req: Request, res: Response, next: NextFunction) => {
-//         const user = req?.user;
-//         const user_roles = (user)?.role || [];
-//         const has_role = roles.every((role) => user_roles.find((e) => e === role));
-//         return has_role ? next() : res.status(403).send({ error: 'Access Denied' });
-//     };
-// }
-
-// hasAnyRole(roles: Array<string>) {
-//     return async (req: Request, res: Response, next: NextFunction) => {
-//         const user = req?.user;
-//         const user_roles = (user)?.role || [];
-//         const has_role = roles.some((role) => user_roles.find((e) => e === role));
-//         return has_role ? next() : res.status(403).send({ error: 'Access Denied' });
-//     };
-// }

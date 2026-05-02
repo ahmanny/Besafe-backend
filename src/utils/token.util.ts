@@ -51,25 +51,26 @@ export const getTokenInfo = async ({ req, token, token_type }: TGetTokenInfoArgs
 export const generateTokens = async (user: any) => {
     try {
         const payload = {
-            _id: user._id,
+            id: user._id?.toString() ?? user.id?.toString(),
+            phone: user.phone,
             name: user.name,
-            email: user.email,
-            roles: user.roles,
+            role: user.role,
         };
+
+        if (!payload.id) throw new Error("Cannot generate token — user has no id");
 
         const access_token = JwtService.sign(payload, 'access');
         const refresh_token = JwtService.sign(payload, 'refresh');
 
-        const userOfToken = await RefreshToken.findOne({ user_id: user._id });
+        await RefreshToken.findOneAndUpdate(
+            { user_id: user._id ?? user.id },
+            { refresh_token },
+            { upsert: true, new: true }
+        );
 
-        if (userOfToken) {
-            await RefreshToken.findOneAndUpdate({ user_id: user._id }, { refresh_token });
-        } else {
-            await RefreshToken.create({ user_id: user._id, refresh_token });
-        }
-
-        return Promise.resolve({ access_token, refresh_token });
+        return { access_token, refresh_token };
     } catch (error) {
-        console.log(error);
+        console.error('generateTokens error:', error);
+        throw error;
     }
 };
