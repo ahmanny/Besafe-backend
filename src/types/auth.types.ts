@@ -1,4 +1,3 @@
-import { UserRoles } from "../models/user.model";
 
 export interface LoginPayloadInterface {
     email: string

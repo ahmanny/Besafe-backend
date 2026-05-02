@@ -1,4 +1,3 @@
-import { generateOTP, getOtpEmailContent } from "../utils/otp.utils";
 import mailjetClient from "../configs/mailjet.config";
 import { getUserByEmail } from "../models/user.model";
 import Exception from "../exceptions/Exception";
@@ -15,39 +14,6 @@ import { getVerificationEmailContent } from "../utils/email.utils";
 class EmailServiceClass {
     constructor() {
         // super()
-    }
-    // send otp to user for email confirmation
-    public async sendOtpEmail(user_email: string, user_name: string) {
-        const otpCode = await generateOTP(user_email)
-
-        const emailContent = await getOtpEmailContent({ user_name, otpCode })
-        try {
-            await mailjetClient
-
-                .post("send", { version: "v3.1" })
-                .request({
-                    Messages: [
-                        {
-                            From: {
-                                Email: process.env.EMAIL_FROM,
-                                Name: "ecommerce"
-                            },
-                            To: [
-                                {
-                                    Email: user_email,
-                                    Name: user_name
-                                }
-                            ],
-                            Subject: "Your OTP Code",
-                            HTMLPart: emailContent
-                        }
-                    ]
-                });
-            return 'Otp sent succesfully';
-        } catch (error) {
-            console.log(error);
-            throw new Exception("Could not send otp")
-        }
     }
 
 
