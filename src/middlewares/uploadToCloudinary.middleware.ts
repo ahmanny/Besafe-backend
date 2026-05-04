@@ -4,20 +4,19 @@ import cloudinary from "../configs/cloudinary.config";
 
 export const uploadToCloudinary = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.files || !(req.files instanceof Array) || req.files.length === 0) {
-        req.cloudinaryUrls = []; // If no new images are uploaded, set empty array
+        req.cloudinaryUrls = [];
         return next();
     }
 
     try {
 
-        const name = req.body.title;
-        const uploadPromises = req.files.map((file) => {
+        const uploadPromises = req.files.map((file, index) => {
             return new Promise<string>((resolve, reject) => {
                 cloudinary.uploader.upload_stream(
                     {
-                        folder: 'product_images',
+                        folder: 'besafe_uploads',
                         format: 'png',
-                        public_id: `${name}_${Date.now()}`,
+                        public_id: `upload_${Date.now()}_${index}`,
                     },
                     (error, cloudinaryResult) => {
                         if (error) reject(error);

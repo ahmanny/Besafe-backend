@@ -11,12 +11,50 @@ import { getVerificationEmailContent } from "../utils/email.utils";
 
 
 
+type SosEmergencyEmailPayload = {
+    toEmail: string;
+    toName: string;
+    subject: string;
+    textBody: string;
+    htmlBody: string;
+};
+
 class EmailServiceClass {
     constructor() {
         // super()
     }
 
+    public async sendSosEmergencyEmail(payload: SosEmergencyEmailPayload): Promise<void> {
+        const fromEmail = process.env.EMAIL_FROM;
+        if (!fromEmail) {
+            throw new Exception("Email delivery is not configured (EMAIL_FROM)");
+        }
 
+        try {
+            await mailjetClient.post("send", { version: "v3.1" }).request({
+                Messages: [
+                    {
+                        From: {
+                            Email: fromEmail,
+                            Name: "BeSafe",
+                        },
+                        To: [
+                            {
+                                Email: payload.toEmail,
+                                Name: payload.toName,
+                            },
+                        ],
+                        Subject: payload.subject,
+                        TextPart: payload.textBody,
+                        HTMLPart: payload.htmlBody,
+                    },
+                ],
+            });
+        } catch (error) {
+            console.error("[Email] SOS send failed:", error);
+            throw new Exception("Could not send SOS email");
+        }
+    }
 
     public async sendUserResetPasswordEmail(payload: SendResetPasswordLinkEmailPayload) {
 
