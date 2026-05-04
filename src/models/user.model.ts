@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import mongoose, { Schema, model, UpdateQuery } from 'mongoose';
 
 export enum UserRole {
     ADMIN = 'admin',
@@ -91,5 +91,5 @@ export const getUserByPhone = (phone: string) => User.findOne({ phone });
 export const getUserByEmail = (email: string) => User.findOne({ email });
 export const getUserById = (id: string) => User.findById(id).lean();
 export const createUser = (phone: string) => new User({ phone }).save();
-export const updateUserById = (id: string, values: Partial<IUser>) =>
-    User.findByIdAndUpdate(id, values, { new: true });
+export const updateUserById = (id: string, values: UpdateQuery<IUser>) =>
+    User.findByIdAndUpdate(id, values, { new: true, runValidators: true }).lean();

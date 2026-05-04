@@ -1,13 +1,14 @@
-import { getUserById, updateUserById } from "../models/user.model";
+import { getUserByEmail, getUserById, updateUserById } from "../models/user.model";
 import ResourceNotFoundException from "../exceptions/ResourceNotFoundException";
 import { IEmergencyContact } from "../models/user.model";
 import Exception from "../exceptions/Exception";
+import ConflictException from "../exceptions/ConflictException";
 
 
 export type UpdateProfilePayload = {
     name?: string;
-    email?: string;
-    profilePicture?: string;
+    email?: string | null;
+    profilePicture?: string | null;
     emergencyContacts?: IEmergencyContact[];
 };
 
@@ -34,6 +35,37 @@ class UserServiceClass {
 
     // PATCH /users/me
     public async updateMe(userId: string, payload: UpdateProfilePayload) {
+        const $set: Record<string, unknown> = {};
+        const $unset: Record<string, ""> = {};
+
+        if (payload.name !== undefined) {
+            const name = payload.name.trim();
+            if (!name) throw new Exception("Name is required");
+            $set.name = name;
+        }
+
+        if (payload.email !== undefined) {
+            const email = payload.email?.trim().toLowerCase();
+            if (email) {
+                const existing = await getUserByEmail(email).lean();
+                if (existing && existing._id.toString() !== userId) {
+                    throw new ConflictException("Email is already in use");
+                }
+                $set.email = email;
+            } else {
+                $unset.email = "";
+                $set.isEmailVerified = false;
+            }
+        }
+
+        if (payload.profilePicture !== undefined) {
+            if (payload.profilePicture) {
+                $set.profilePicture = payload.profilePicture;
+            } else {
+                $unset.profilePicture = "";
+            }
+        }
+
         if (payload.emergencyContacts) {
             for (const contact of payload.emergencyContacts) {
                 if (!contact.name?.trim()) {
@@ -48,9 +80,14 @@ class UserServiceClass {
                     );
                 }
             }
+            $set.emergencyContacts = payload.emergencyContacts;
         }
 
-        const user = await updateUserById(userId, payload);
+        const update: Record<string, unknown> = {};
+        if (Object.keys($set).length > 0) update.$set = $set;
+        if (Object.keys($unset).length > 0) update.$unset = $unset;
+
+        const user = await updateUserById(userId, update);
         if (!user) throw new ResourceNotFoundException("User not found");
         return user;
     }

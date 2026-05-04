@@ -3,6 +3,32 @@ import { Request, RequestHandler, Response } from "express";
 import { error_handler, ok_handler } from "../utils/response_handler";
 import { UserService } from "../services/user.service";
 import MissingParameterException from "../exceptions/MissingParameterException";
+import cloudinary from "../configs/cloudinary.config";
+
+const uploadProfilePicture = (file: Express.Multer.File): Promise<string> =>
+    new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+            {
+                folder: "besafe/profile_pictures",
+                format: "jpg",
+                public_id: `profile_${Date.now()}`,
+                resource_type: "image",
+            },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result?.secure_url || "");
+            }
+        ).end(file.buffer);
+    });
+
+const parseEmergencyContacts = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        throw new MissingParameterException("Invalid emergencyContacts payload");
+    }
+};
 
 // GET /users/me
 export const getMe: RequestHandler = async (
@@ -24,12 +50,11 @@ export const updateMe: RequestHandler = async (
     res: Response
 ): Promise<void> => {
     try {
-        const {
-            name,
-            email,
-            profilePicture,
-            emergencyContacts,
-        } = req.body;
+        const { name, email } = req.body;
+        const emergencyContacts = parseEmergencyContacts(req.body.emergencyContacts);
+        const profilePicture = req.file
+            ? await uploadProfilePicture(req.file)
+            : req.body.profilePicture;
 
         // build update object — only include fields that were sent
         const updates: Record<string, any> = {};
