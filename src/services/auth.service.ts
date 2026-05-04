@@ -80,7 +80,6 @@ class AuthServiceClass {
 
         // SEND OTP
         const message = `Your BeSafe code is: ${otp}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`
-        console.log(message)
         // await sendOtpSms(payload.phone, message);
 
         await session.save();
@@ -126,7 +125,6 @@ class AuthServiceClass {
         await session.save();
 
         const message = `Your BeSafe code is: ${otp}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`
-        console.log(message)
 
         // await sendOtpSms(phone, message);
         const cooldown = Math.min(RESEND_COOLDOWN_BASE * session.sendCount, MAX_COOLDOWN_SECONDS);
@@ -207,14 +205,10 @@ class AuthServiceClass {
             token: refresh_token,
             token_type: "refresh"
         });
-        // debug — remove after fix
-        console.log("token result:", JSON.stringify(token, null, 2));
         if (!token) {
             throw new InvalidAccessCredentialsExceptions("Session token is invallid")
         }
 
-        console.log("is_valid_token:", token.is_valid_token);
-        console.log("user:", token.user);
 
         const { user } = token
 

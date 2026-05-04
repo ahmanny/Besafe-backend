@@ -39,7 +39,6 @@ export const getMe: RequestHandler = async (
 ): Promise<void> => {
     try {
         const user = await UserService.getMe(req.user!._id);
-        console.log("Fetched user:", user);
         ok_handler(res, "User fetched", { user });
     } catch (error) {
         error_handler(error, req, res);
