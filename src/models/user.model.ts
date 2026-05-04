@@ -25,6 +25,10 @@ export interface IUser {
     emergencyContacts: IEmergencyContact[];
     lastSeenAt?: Date;
     pushTokens: string[];
+    settings: {
+        autoCallEmergency: boolean;
+        liveLocationSharing: boolean;
+    };
 }
 
 const EmergencyContactSchema = new Schema<IEmergencyContact>({
@@ -79,6 +83,10 @@ const UserSchema = new Schema<IUser>({
     pushTokens: {
         type: [String],
         default: [],
+    },
+    settings: {
+        autoCallEmergency: { type: Boolean, default: false },
+        liveLocationSharing: { type: Boolean, default: true },
     },
 }, {
     timestamps: true,

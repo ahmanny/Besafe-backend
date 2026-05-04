@@ -4,6 +4,8 @@ import { error_handler, ok_handler } from "../utils/response_handler";
 import { UserService } from "../services/user.service";
 import MissingParameterException from "../exceptions/MissingParameterException";
 import cloudinary from "../configs/cloudinary.config";
+import { User } from "../models/user.model";
+import ResourceNotFoundException from "../exceptions/ResourceNotFoundException";
 
 const uploadProfilePicture = (file: Express.Multer.File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -90,6 +92,28 @@ export const onboard: RequestHandler = async (
         });
 
         ok_handler(res, "Onboarding complete", { user });
+    } catch (error) {
+        error_handler(error, req, res);
+    }
+};
+
+// PATCH /users/me/settings
+export const updateSettings: RequestHandler = async (req, res) => {
+    try {
+        const { autoCallEmergency, liveLocationSharing } = req.body;
+
+        const updates: Record<string, any> = {};
+        if (autoCallEmergency !== undefined) updates["settings.autoCallEmergency"] = autoCallEmergency;
+        if (liveLocationSharing !== undefined) updates["settings.liveLocationSharing"] = liveLocationSharing;
+
+        const user = await User.findByIdAndUpdate(
+            req.user!._id,
+            { $set: updates },
+            { new: true }
+        );
+
+        if (!user) throw new ResourceNotFoundException("User not found");
+        ok_handler(res, "Settings updated", { user });
     } catch (error) {
         error_handler(error, req, res);
     }
